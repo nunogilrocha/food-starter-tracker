@@ -1,21 +1,79 @@
-import json
+import sqlite3
 import os
 from flask import Flask, jsonify, request, render_template
 
 app = Flask(__name__)
 
-DATA_FILE = os.path.join(os.path.dirname(__file__), "data.json")
+DB_FILE = os.path.join(os.path.dirname(__file__), "data.db")
 
 
-def load_data():
-    with open(DATA_FILE, "r") as f:
-        return json.load(f)
+def get_db():
+    db = sqlite3.connect(DB_FILE)
+    db.row_factory = sqlite3.Row
+    db.execute("PRAGMA foreign_keys = ON")
+    return db
 
 
-def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=2)
+def init_db():
+    db = get_db()
+    db.executescript("""
+        CREATE TABLE IF NOT EXISTS food_groups (
+            id    INTEGER PRIMARY KEY AUTOINCREMENT,
+            name  TEXT    NOT NULL,
+            color TEXT    NOT NULL DEFAULT '#868e96'
+        );
+        CREATE TABLE IF NOT EXISTS group_foods (
+            id       INTEGER PRIMARY KEY AUTOINCREMENT,
+            group_id INTEGER NOT NULL REFERENCES food_groups(id) ON DELETE CASCADE,
+            name     TEXT    NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS weeks (
+            id    INTEGER PRIMARY KEY AUTOINCREMENT,
+            label TEXT    NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS entries (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            week_id         INTEGER NOT NULL REFERENCES weeks(id)       ON DELETE CASCADE,
+            food            TEXT    NOT NULL,
+            group_id        INTEGER NOT NULL REFERENCES food_groups(id) ON DELETE CASCADE,
+            introduced      INTEGER NOT NULL DEFAULT 0,
+            introduced_date TEXT,
+            notes           TEXT    NOT NULL DEFAULT ''
+        );
+    """)
+    db.close()
 
+
+init_db()
+
+
+# ── Helpers ────────────────────────────────────────────────────────────────
+
+def _group_to_dict(row, db):
+    g = dict(row)
+    foods = db.execute(
+        "SELECT id, name FROM group_foods WHERE group_id = ? ORDER BY id",
+        (g["id"],)
+    ).fetchall()
+    g["foods"] = [dict(f) for f in foods]
+    return g
+
+
+def _week_to_dict(row, db):
+    w = dict(row)
+    rows = db.execute(
+        "SELECT id, food, group_id, introduced, introduced_date, notes "
+        "FROM entries WHERE week_id = ? ORDER BY id",
+        (w["id"],)
+    ).fetchall()
+    w["entries"] = [
+        {**dict(e), "introduced": bool(e["introduced"])}
+        for e in rows
+    ]
+    return w
+
+
+# ── Routes ─────────────────────────────────────────────────────────────────
 
 @app.route("/")
 def landing():
@@ -37,186 +95,210 @@ def view_list():
     return render_template("index.html", initial_tab="foodlist")
 
 
-# --- Food Groups ---
+# ── Food Groups ────────────────────────────────────────────────────────────
 
 @app.route("/api/food_groups", methods=["GET"])
 def get_food_groups():
-    data = load_data()
-    return jsonify(data["food_groups"])
+    db = get_db()
+    rows = db.execute("SELECT id, name, color FROM food_groups ORDER BY id").fetchall()
+    result = [_group_to_dict(r, db) for r in rows]
+    db.close()
+    return jsonify(result)
 
 
 @app.route("/api/food_groups", methods=["POST"])
 def add_food_group():
-    data = load_data()
     body = request.json or {}
-    if not body.get("name", "").strip():
+    name = body.get("name", "").strip()
+    if not name:
         return jsonify({"error": "name is required"}), 400
-    new_id = max((g["id"] for g in data["food_groups"]), default=0) + 1
-    group = {"id": new_id, "name": body["name"].strip(), "color": body.get("color", "#868e96")}
-    data["food_groups"].append(group)
-    save_data(data)
+    color = body.get("color", "#868e96")
+    db = get_db()
+    cur = db.execute("INSERT INTO food_groups (name, color) VALUES (?, ?)", (name, color))
+    db.commit()
+    group = {"id": cur.lastrowid, "name": name, "color": color, "foods": []}
+    db.close()
     return jsonify(group), 201
 
 
 @app.route("/api/food_groups/<int:group_id>", methods=["PUT"])
 def update_food_group(group_id):
-    data = load_data()
-    for group in data["food_groups"]:
-        if group["id"] == group_id:
-            body = request.json
-            if "name" in body:
-                group["name"] = body["name"]
-            if "color" in body:
-                group["color"] = body["color"]
-            save_data(data)
-            return jsonify(group)
-    return jsonify({"error": "Not found"}), 404
+    body = request.json or {}
+    db = get_db()
+    row = db.execute("SELECT id, name, color FROM food_groups WHERE id = ?", (group_id,)).fetchone()
+    if not row:
+        db.close()
+        return jsonify({"error": "Not found"}), 404
+    name  = body.get("name",  row["name"])
+    color = body.get("color", row["color"])
+    db.execute("UPDATE food_groups SET name = ?, color = ? WHERE id = ?", (name, color, group_id))
+    db.commit()
+    result = _group_to_dict(
+        db.execute("SELECT id, name, color FROM food_groups WHERE id = ?", (group_id,)).fetchone(), db
+    )
+    db.close()
+    return jsonify(result)
 
 
 @app.route("/api/food_groups/<int:group_id>", methods=["DELETE"])
 def delete_food_group(group_id):
-    data = load_data()
-    data["food_groups"] = [g for g in data["food_groups"] if g["id"] != group_id]
-    # remove entries belonging to this group across all weeks
-    for week in data["weeks"]:
-        week["entries"] = [e for e in week["entries"] if e["group_id"] != group_id]
-    save_data(data)
+    # CASCADE deletes group_foods and entries automatically
+    db = get_db()
+    db.execute("DELETE FROM food_groups WHERE id = ?", (group_id,))
+    db.commit()
+    db.close()
     return "", 204
 
 
-# --- Weeks ---
+# ── Group Foods ────────────────────────────────────────────────────────────
+
+@app.route("/api/food_groups/<int:group_id>/foods", methods=["POST"])
+def add_group_food(group_id):
+    body = request.json or {}
+    name = body.get("name", "").strip()
+    if not name:
+        return jsonify({"error": "name is required"}), 400
+    db = get_db()
+    if not db.execute("SELECT 1 FROM food_groups WHERE id = ?", (group_id,)).fetchone():
+        db.close()
+        return jsonify({"error": "Not found"}), 404
+    cur = db.execute("INSERT INTO group_foods (group_id, name) VALUES (?, ?)", (group_id, name))
+    db.commit()
+    food = {"id": cur.lastrowid, "name": name}
+    db.close()
+    return jsonify(food), 201
+
+
+@app.route("/api/food_groups/<int:group_id>/foods/<int:food_id>", methods=["DELETE"])
+def delete_group_food(group_id, food_id):
+    db = get_db()
+    db.execute("DELETE FROM group_foods WHERE id = ? AND group_id = ?", (food_id, group_id))
+    db.commit()
+    db.close()
+    return "", 204
+
+
+# ── Weeks ──────────────────────────────────────────────────────────────────
 
 @app.route("/api/weeks", methods=["GET"])
 def get_weeks():
-    data = load_data()
-    return jsonify(data["weeks"])
+    db = get_db()
+    rows = db.execute("SELECT id, label FROM weeks ORDER BY id").fetchall()
+    result = [_week_to_dict(r, db) for r in rows]
+    db.close()
+    return jsonify(result)
 
 
 @app.route("/api/weeks", methods=["POST"])
 def add_week():
-    data = load_data()
-    new_id = max((w["id"] for w in data["weeks"]), default=0) + 1
-    body = request.json
-    week = {
-        "id": new_id,
-        "label": body.get("label", f"Week {new_id}"),
-        "entries": [],
-    }
-    data["weeks"].append(week)
-    save_data(data)
+    body = request.json or {}
+    db = get_db()
+    count = db.execute("SELECT COUNT(*) FROM weeks").fetchone()[0]
+    label = body.get("label", f"Week {count + 1}")
+    cur = db.execute("INSERT INTO weeks (label) VALUES (?)", (label,))
+    db.commit()
+    week = {"id": cur.lastrowid, "label": label, "entries": []}
+    db.close()
     return jsonify(week), 201
 
 
 @app.route("/api/weeks/<int:week_id>", methods=["PUT"])
 def update_week(week_id):
-    data = load_data()
-    for week in data["weeks"]:
-        if week["id"] == week_id:
-            body = request.json
-            if "label" in body:
-                week["label"] = body["label"]
-            save_data(data)
-            return jsonify(week)
-    return jsonify({"error": "Not found"}), 404
+    body = request.json or {}
+    db = get_db()
+    row = db.execute("SELECT id, label FROM weeks WHERE id = ?", (week_id,)).fetchone()
+    if not row:
+        db.close()
+        return jsonify({"error": "Not found"}), 404
+    label = body.get("label", row["label"])
+    db.execute("UPDATE weeks SET label = ? WHERE id = ?", (label, week_id))
+    db.commit()
+    result = _week_to_dict(
+        db.execute("SELECT id, label FROM weeks WHERE id = ?", (week_id,)).fetchone(), db
+    )
+    db.close()
+    return jsonify(result)
 
 
 @app.route("/api/weeks/<int:week_id>", methods=["DELETE"])
 def delete_week(week_id):
-    data = load_data()
-    data["weeks"] = [w for w in data["weeks"] if w["id"] != week_id]
-    save_data(data)
+    # CASCADE deletes entries automatically
+    db = get_db()
+    db.execute("DELETE FROM weeks WHERE id = ?", (week_id,))
+    db.commit()
+    db.close()
     return "", 204
 
 
-# --- Group Foods ---
-
-@app.route("/api/food_groups/<int:group_id>/foods", methods=["POST"])
-def add_group_food(group_id):
-    data = load_data()
-    body = request.json or {}
-    name = body.get("name", "").strip()
-    if not name:
-        return jsonify({"error": "name is required"}), 400
-    for group in data["food_groups"]:
-        if group["id"] == group_id:
-            if "foods" not in group:
-                group["foods"] = []
-            food_id = data.get("next_food_id", 1)
-            data["next_food_id"] = food_id + 1
-            food = {"id": food_id, "name": name}
-            group["foods"].append(food)
-            save_data(data)
-            return jsonify(food), 201
-    return jsonify({"error": "Not found"}), 404
-
-
-@app.route("/api/food_groups/<int:group_id>/foods/<int:food_id>", methods=["DELETE"])
-def delete_group_food(group_id, food_id):
-    data = load_data()
-    for group in data["food_groups"]:
-        if group["id"] == group_id:
-            group["foods"] = [f for f in group.get("foods", []) if f["id"] != food_id]
-            save_data(data)
-            return "", 204
-    return jsonify({"error": "Not found"}), 404
-
-
-# --- Entries ---
+# ── Entries ────────────────────────────────────────────────────────────────
 
 @app.route("/api/weeks/<int:week_id>/entries", methods=["POST"])
 def add_entry(week_id):
-    data = load_data()
-    body = request.json
-    for week in data["weeks"]:
-        if week["id"] == week_id:
-            entry = {
-                "id": data["next_entry_id"],
-                "food": body["food"],
-                "group_id": body["group_id"],
-                "introduced": False,
-                "introduced_date": None,
-                "notes": body.get("notes", ""),
-            }
-            data["next_entry_id"] += 1
-            week["entries"].append(entry)
-            save_data(data)
-            return jsonify(entry), 201
-    return jsonify({"error": "Week not found"}), 404
+    body = request.json or {}
+    db = get_db()
+    if not db.execute("SELECT 1 FROM weeks WHERE id = ?", (week_id,)).fetchone():
+        db.close()
+        return jsonify({"error": "Week not found"}), 404
+    cur = db.execute(
+        "INSERT INTO entries (week_id, food, group_id, introduced, introduced_date, notes) "
+        "VALUES (?, ?, ?, 0, NULL, ?)",
+        (week_id, body["food"], body["group_id"], body.get("notes", ""))
+    )
+    db.commit()
+    entry = {
+        "id": cur.lastrowid,
+        "food": body["food"],
+        "group_id": body["group_id"],
+        "introduced": False,
+        "introduced_date": None,
+        "notes": body.get("notes", ""),
+    }
+    db.close()
+    return jsonify(entry), 201
 
 
 @app.route("/api/weeks/<int:week_id>/entries/<int:entry_id>", methods=["PUT"])
 def update_entry(week_id, entry_id):
-    data = load_data()
-    for week in data["weeks"]:
-        if week["id"] == week_id:
-            for entry in week["entries"]:
-                if entry["id"] == entry_id:
-                    body = request.json
-                    if "food" in body:
-                        entry["food"] = body["food"]
-                    if "group_id" in body:
-                        entry["group_id"] = body["group_id"]
-                    if "introduced" in body:
-                        entry["introduced"] = body["introduced"]
-                    if "introduced_date" in body:
-                        entry["introduced_date"] = body["introduced_date"]
-                    if "notes" in body:
-                        entry["notes"] = body["notes"]
-                    save_data(data)
-                    return jsonify(entry)
-            return jsonify({"error": "Entry not found"}), 404
-    return jsonify({"error": "Week not found"}), 404
+    body = request.json or {}
+    db = get_db()
+    if not db.execute("SELECT 1 FROM weeks WHERE id = ?", (week_id,)).fetchone():
+        db.close()
+        return jsonify({"error": "Week not found"}), 404
+    row = db.execute(
+        "SELECT id, food, group_id, introduced, introduced_date, notes "
+        "FROM entries WHERE id = ? AND week_id = ?",
+        (entry_id, week_id)
+    ).fetchone()
+    if not row:
+        db.close()
+        return jsonify({"error": "Entry not found"}), 404
+    food     = body.get("food",            row["food"])
+    group_id = body.get("group_id",        row["group_id"])
+    intro    = body.get("introduced",      bool(row["introduced"]))
+    date     = body.get("introduced_date", row["introduced_date"])
+    notes    = body.get("notes",           row["notes"])
+    db.execute(
+        "UPDATE entries SET food=?, group_id=?, introduced=?, introduced_date=?, notes=? WHERE id=?",
+        (food, group_id, int(intro), date, notes, entry_id)
+    )
+    db.commit()
+    db.close()
+    return jsonify({
+        "id": entry_id, "food": food, "group_id": group_id,
+        "introduced": intro, "introduced_date": date, "notes": notes,
+    })
 
 
 @app.route("/api/weeks/<int:week_id>/entries/<int:entry_id>", methods=["DELETE"])
 def delete_entry(week_id, entry_id):
-    data = load_data()
-    for week in data["weeks"]:
-        if week["id"] == week_id:
-            week["entries"] = [e for e in week["entries"] if e["id"] != entry_id]
-            save_data(data)
-            return "", 204
-    return jsonify({"error": "Week not found"}), 404
+    db = get_db()
+    if not db.execute("SELECT 1 FROM weeks WHERE id = ?", (week_id,)).fetchone():
+        db.close()
+        return jsonify({"error": "Week not found"}), 404
+    db.execute("DELETE FROM entries WHERE id = ? AND week_id = ?", (entry_id, week_id))
+    db.commit()
+    db.close()
+    return "", 204
 
 
 if __name__ == "__main__":
