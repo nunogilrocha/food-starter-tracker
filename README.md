@@ -13,7 +13,9 @@ Built with Python (Flask) + vanilla JS + SQLite.
 ```bash
 git clone https://github.com/nunogilrocha/food-starter-tracker.git
 cd food-starter-tracker
-pip3 install flask
+python3 -m venv .venv
+source .venv/bin/activate
+pip install flask
 python3 app.py
 ```
 
@@ -31,7 +33,9 @@ SSH into your Pi, then:
 ```bash
 git clone https://github.com/nunogilrocha/food-starter-tracker.git
 cd food-starter-tracker
-pip3 install flask
+python3 -m venv .venv
+source .venv/bin/activate
+pip install flask
 ```
 
 ### 2. Verify it runs
@@ -72,6 +76,8 @@ cd food-starter-tracker
 git pull
 sudo systemctl restart food-tracker
 ```
+
+> **Note:** The virtual environment only needs to be created once. After that, the systemd service uses it automatically via the full path to `.venv/bin/python3`.
 
 ---
 

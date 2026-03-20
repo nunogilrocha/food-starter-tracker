@@ -5,9 +5,11 @@ __pycache__/
 .venv/
 venv/
 env/
+*.egg-info/
 
 # Data — keep out of version control (real personal data)
 data.json
+data.db
 
 # macOS
 .DS_Store
@@ -15,3 +17,10 @@ data.json
 # Editor
 .vscode/
 .idea/
+
+# Claude Code
+.claude/
+
+# Design drafts
+*.avif
+*.excalidraw
