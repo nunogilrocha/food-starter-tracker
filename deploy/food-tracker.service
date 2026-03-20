@@ -1,0 +1,14 @@
+[Unit]
+Description=Helena Food Tracker
+After=network.target
+
+[Service]
+# Replace YOUR_USER with the user that will run the app (e.g. pi)
+# Replace the path if you cloned the repo to a different location
+WorkingDirectory=/home/YOUR_USER/food-starter-tracker
+ExecStart=/usr/bin/python3 app.py
+Restart=always
+User=YOUR_USER
+
+[Install]
+WantedBy=multi-user.target
