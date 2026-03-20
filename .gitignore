@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# Data — keep out of version control (real personal data)
+data.json
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/

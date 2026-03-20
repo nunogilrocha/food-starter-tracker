@@ -1,0 +1,19 @@
+{
+  "food_groups": [
+    {
+      "id": 1,
+      "name": "Vegetables",
+      "color": "#e03131",
+      "foods": []
+    },
+    {
+      "id": 2,
+      "name": "Fruits",
+      "color": "#9c36b5",
+      "foods": []
+    }
+  ],
+  "weeks": [],
+  "next_entry_id": 1,
+  "next_food_id": 1
+}

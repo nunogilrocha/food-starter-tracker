@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Helena Food Tracker</title>
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234a7c52'/%3E%3Cpath d='M16 22V14' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M16 18C16 18 11 17 10 12 10 12 15 11 16 18Z' fill='white'/%3E%3Cpath d='M16 15C16 15 21 14 22 9 22 9 17 9 16 15Z' fill='rgba(255,255,255,.75)'/%3E%3Cpath d='M9 22H23' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M10 22C10 22 11 27 16 27 21 27 22 22 22 22' stroke='white' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      --font-sans: 'Inter', system-ui, sans-serif;
+      --color-sage-50:  #f2f7ee;
+      --color-sage-100: #deebd3;
+      --color-sage-200: #c3d9b4;
+      --color-sage-300: #a3c28f;
+      --color-sage-bg:  #dde8d2;
+      --color-forest:   #4a7c52;
+      --color-forest-dark: #3a6341;
+    }
+  </style>
+
+  <style>
+    body { padding-bottom: env(safe-area-inset-bottom); }
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: #4a7c52;
+      color: white;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-decoration: none;
+      padding: 0.85rem 2rem;
+      border-radius: 999px;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 2px 8px rgba(74,124,82,0.25);
+    }
+    .nav-btn:hover {
+      background: #3a6341;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(74,124,82,0.35);
+    }
+    .nav-btn:active { transform: translateY(0); }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .hero-icon  { animation: fadeUp 0.5s ease both; }
+    .hero-title { animation: fadeUp 0.5s 0.1s ease both; }
+    .hero-btns  { animation: fadeUp 0.5s 0.22s ease both; }
+  </style>
+</head>
+<body style="background:#dde8d2; min-height:100vh; display:flex; align-items:center; justify-content:center; font-family:'Inter',system-ui,sans-serif;">
+
+  <div style="display:flex; flex-direction:column; align-items:center; gap:2.5rem; padding:2rem; text-align:center;">
+
+    <!-- Icon -->
+    <div class="hero-icon" style="width:88px; height:88px; background:#4a7c52; border-radius:26px; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 32px rgba(74,124,82,0.3);">
+      <svg width="48" height="48" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="9" y1="14" x2="9" y2="8" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M9 11C9 11 5.5 10 5 7C5 7 8.5 6.5 9 11Z" fill="white"/>
+        <path d="M9 9C9 9 12.5 8 13 5C13 5 9.5 5 9 9Z" fill="rgba(255,255,255,0.78)"/>
+        <line x1="4" y1="14" x2="14" y2="14" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M5 14C5 14 5.5 17 9 17C12.5 17 13 14 13 14" stroke="white" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <!-- Title -->
+    <div class="hero-title" style="display:flex; flex-direction:column; gap:0.25rem;">
+      <span style="font-size:2.4rem; font-weight:700; color:#2d4a32; letter-spacing:-0.03em; line-height:1;">Helena</span>
+      <span style="font-size:0.7rem; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:#7aaa84;">Food Tracker</span>
+    </div>
+
+    <!-- Nav buttons -->
+    <div class="hero-btns" style="display:flex; flex-direction:column; gap:0.9rem; width:100%; max-width:220px;">
+      <a href="/calendar" class="nav-btn">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="3" width="14" height="12" rx="2" stroke="white" stroke-width="1.5" fill="none"/>
+          <line x1="1" y1="7" x2="15" y2="7" stroke="white" stroke-width="1.5"/>
+          <line x1="5" y1="1" x2="5" y2="5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="11" y1="1" x2="11" y2="5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        Calendar
+      </a>
+      <a href="/groups" class="nav-btn">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+          <circle cx="5" cy="5" r="2.5" stroke="white" stroke-width="1.5" fill="none"/>
+          <circle cx="11" cy="5" r="2.5" stroke="white" stroke-width="1.5" fill="none"/>
+          <path d="M1 14c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="white" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <path d="M11 10c1.7.3 3 1.8 3 4" stroke="white" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        </svg>
+        Groups
+      </a>
+      <a href="/list" class="nav-btn">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+          <line x1="5" y1="4" x2="14" y2="4" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="5" y1="8" x2="14" y2="8" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="5" y1="12" x2="14" y2="12" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="2.5" cy="4" r="1" fill="white"/>
+          <circle cx="2.5" cy="8" r="1" fill="white"/>
+          <circle cx="2.5" cy="12" r="1" fill="white"/>
+        </svg>
+        Food List
+      </a>
+    </div>
+
+  </div>
+
+</body>
+</html>

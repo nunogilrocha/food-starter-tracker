@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Helena Food Tracker</title>
+
+  <!-- SVG favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234a7c52'/%3E%3Cpath d='M16 22V14' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M16 18C16 18 11 17 10 12 10 12 15 11 16 18Z' fill='white'/%3E%3Cpath d='M16 15C16 15 21 14 22 9 22 9 17 9 16 15Z' fill='rgba(255,255,255,.75)'/%3E%3Cpath d='M9 22H23' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M10 22C10 22 11 27 16 27 21 27 22 22 22 22' stroke='white' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      --font-sans: 'Inter', system-ui, sans-serif;
+      --color-sage-50:  #f2f7ee;
+      --color-sage-100: #deebd3;
+      --color-sage-200: #c3d9b4;
+      --color-sage-300: #a3c28f;
+      --color-sage-bg:  #dde8d2;
+    }
+  </style>
+
+  <style>
+    /* ── Circular checkbox ──────────────────────────────────────── */
+    .food-check {
+      appearance: none; -webkit-appearance: none;
+      width: 1.05rem; height: 1.05rem; border-radius: 50%;
+      border: 1.5px solid #c3d9b4; cursor: pointer; flex-shrink: 0;
+      position: relative;
+      transition: background .2s, border-color .2s, transform .15s;
+      background: white;
+    }
+    .food-check:hover { transform: scale(1.2); }
+    .food-check:checked { border-color: var(--chk); background: var(--chk); }
+    .food-check:checked::after {
+      content: ''; position: absolute;
+      left: 3px; top: 0px; width: 4px; height: 8px;
+      border: 1.5px solid white; border-top: none; border-left: none;
+      transform: rotate(45deg);
+    }
+
+    /* ── Strikethrough ──────────────────────────────────────────── */
+    .food-name { transition: color .2s; }
+    .food-name.done { text-decoration: line-through; color: #9ab08a; }
+
+    /* ── Animations ─────────────────────────────────────────────── */
+    .date-chip { animation: chipIn .2s ease; }
+    @keyframes chipIn {
+      from { opacity: 0; transform: translateY(-3px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .tab-panel { animation: panelIn .22s ease; }
+    @keyframes panelIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Scrollbars ─────────────────────────────────────────────── */
+    #panel-calendar::-webkit-scrollbar { height: 4px; }
+    #panel-calendar::-webkit-scrollbar-track { background: transparent; }
+    #panel-calendar::-webkit-scrollbar-thumb { background: #c3d9b4; border-radius: 99px; }
+
+    /* ── Config row hover ───────────────────────────────────────── */
+    .config-row:hover .config-row-actions { opacity: 1; }
+    .config-row-actions { opacity: 0; transition: opacity .15s; }
+
+    /* ── Touch: always show hover-reveal actions ─────────────────── */
+    @media (hover: none) {
+      .reveal-actions { opacity: 1 !important; }
+    }
+
+    /* ── Safe area on iOS notch/home-bar ────────────────────────── */
+    body { padding-bottom: env(safe-area-inset-bottom); }
+  </style>
+</head>
+<body class="bg-sage-bg min-h-screen font-sans antialiased text-stone-800">
+
+  <!-- ══ Header ════════════════════════════════════════════════════════ -->
+  <header class="sticky top-0 z-20 bg-white/85 backdrop-blur-md border-b border-sage-100">
+
+    <!-- top row: icon + title + tabs -->
+    <div class="flex flex-wrap items-center gap-3 px-4 sm:px-6 pt-3 pb-2 sm:pb-3">
+
+      <!-- App icon + title (links back to landing) -->
+      <a href="/" class="flex items-center gap-3 flex-shrink-0 transition-opacity hover:opacity-75">
+        <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background:#4a7c52">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- stem -->
+            <line x1="9" y1="14" x2="9" y2="8" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+            <!-- left leaf -->
+            <path d="M9 11C9 11 5.5 10 5 7C5 7 8.5 6.5 9 11Z" fill="white"/>
+            <!-- right leaf -->
+            <path d="M9 9C9 9 12.5 8 13 5C13 5 9.5 5 9 9Z" fill="rgba(255,255,255,0.78)"/>
+            <!-- bowl line -->
+            <line x1="4" y1="14" x2="14" y2="14" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+            <!-- bowl arc -->
+            <path d="M5 14C5 14 5.5 17 9 17C12.5 17 13 14 13 14" stroke="white" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="flex flex-col leading-tight">
+          <span class="text-sm font-bold text-stone-800 tracking-tight">Helena</span>
+          <span class="text-[0.58rem] font-semibold tracking-[0.14em] uppercase text-sage-300">Food Tracker</span>
+        </div>
+      </a>
+
+      <!-- Tabs -->
+      <div id="tab-bar" class="relative flex bg-sage-100 rounded-full p-1 ml-auto">
+        <div id="tab-pill"
+          class="absolute top-1 bottom-1 bg-white rounded-full shadow-sm pointer-events-none transition-all duration-300 ease-in-out">
+        </div>
+        <button data-tab="calendar"
+          class="tab-btn relative z-10 text-[0.65rem] sm:text-[0.68rem] font-semibold tracking-wider uppercase px-3 sm:px-4 py-1.5 rounded-full transition-colors duration-200 cursor-pointer whitespace-nowrap">
+          Calendar
+        </button>
+        <button data-tab="groups"
+          class="tab-btn relative z-10 text-[0.65rem] sm:text-[0.68rem] font-semibold tracking-wider uppercase px-3 sm:px-4 py-1.5 rounded-full transition-colors duration-200 cursor-pointer whitespace-nowrap">
+          Groups
+        </button>
+        <button data-tab="foodlist"
+          class="tab-btn relative z-10 text-[0.65rem] sm:text-[0.68rem] font-semibold tracking-wider uppercase px-3 sm:px-4 py-1.5 rounded-full transition-colors duration-200 cursor-pointer whitespace-nowrap">
+          List
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══ Tab panels ════════════════════════════════════════════════════ -->
+
+  <!-- Calendar -->
+  <section id="panel-calendar"
+    class="tab-panel flex flex-row gap-4 sm:gap-5 px-4 sm:px-6 py-5 sm:py-8 overflow-x-auto items-start min-h-[calc(100vh-72px)]"
+    style="-webkit-overflow-scrolling: touch;">
+  </section>
+
+  <!-- Groups -->
+  <section id="panel-groups" class="tab-panel hidden px-4 sm:px-6 py-5 sm:py-8 max-w-2xl mx-auto w-full">
+    <div id="groups-content"></div>
+  </section>
+
+  <!-- Food List -->
+  <section id="panel-foodlist" class="tab-panel hidden px-4 sm:px-6 py-5 sm:py-8 max-w-3xl mx-auto">
+    <div id="foodlist-content"></div>
+  </section>
+
+
+  <!-- ══ Modal: Add/Edit Entry ═════════════════════════════════════════ -->
+  <div id="modal-entry" hidden
+    class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/25 backdrop-blur-sm">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-xl border border-sage-100 w-full sm:w-[min(420px,92vw)] p-6 flex flex-col gap-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6">
+      <div class="w-10 h-1 bg-sage-200 rounded-full mx-auto sm:hidden mb-1"></div>
+      <h2 id="modal-entry-title" class="text-[0.65rem] font-bold tracking-[0.16em] uppercase text-stone-400"></h2>
+      <input type="hidden" id="entry-week-id" />
+      <input type="hidden" id="entry-id" />
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[0.62rem] font-semibold tracking-widest uppercase text-stone-400">Group</label>
+        <select id="entry-group"
+          class="w-full border border-sage-200 rounded-xl px-3.5 py-3 text-sm outline-none focus:border-stone-800 transition-colors bg-white"></select>
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[0.62rem] font-semibold tracking-widest uppercase text-stone-400">Food</label>
+        <select id="entry-food-select"
+          class="w-full border border-sage-200 rounded-xl px-3.5 py-3 text-sm outline-none focus:border-stone-800 transition-colors bg-white"></select>
+      </div>
+      <div class="flex justify-end gap-2 pt-1 border-t border-sage-100">
+        <button id="btn-entry-cancel" class="text-[0.68rem] font-bold tracking-wider uppercase text-stone-500 px-4 py-2.5 rounded-full hover:bg-stone-100 transition-colors">Cancel</button>
+        <button id="btn-entry-save"   class="text-[0.68rem] font-bold tracking-wider uppercase bg-stone-900 text-white px-5 py-2.5 rounded-full hover:bg-stone-700 transition-colors">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Modal: Add/Edit Week ══════════════════════════════════════════ -->
+  <div id="modal-week" hidden
+    class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/25 backdrop-blur-sm">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-xl border border-sage-100 w-full sm:w-[min(380px,92vw)] p-6 flex flex-col gap-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6">
+      <div class="w-10 h-1 bg-sage-200 rounded-full mx-auto sm:hidden mb-1"></div>
+      <h2 id="modal-week-title" class="text-[0.65rem] font-bold tracking-[0.16em] uppercase text-stone-400"></h2>
+      <input type="hidden" id="week-id" />
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[0.62rem] font-semibold tracking-widest uppercase text-stone-400">Label</label>
+        <input id="week-label" type="text" placeholder="e.g. Week 4"
+          class="w-full border border-sage-200 rounded-xl px-3.5 py-3 text-sm outline-none focus:border-stone-800 transition-colors placeholder:text-stone-300" />
+      </div>
+      <div class="flex justify-end gap-2 pt-1 border-t border-sage-100">
+        <button id="btn-week-cancel" class="text-[0.68rem] font-bold tracking-wider uppercase text-stone-500 px-4 py-2.5 rounded-full hover:bg-stone-100 transition-colors">Cancel</button>
+        <button id="btn-week-save"   class="text-[0.68rem] font-bold tracking-wider uppercase bg-stone-900 text-white px-5 py-2.5 rounded-full hover:bg-stone-700 transition-colors">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Modal: Add/Edit Group ═════════════════════════════════════════ -->
+  <div id="modal-group" hidden
+    class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/25 backdrop-blur-sm">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-xl border border-sage-100 w-full sm:w-[min(380px,92vw)] p-6 flex flex-col gap-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6">
+      <div class="w-10 h-1 bg-sage-200 rounded-full mx-auto sm:hidden mb-1"></div>
+      <h2 id="modal-group-title" class="text-[0.65rem] font-bold tracking-[0.16em] uppercase text-stone-400"></h2>
+      <input type="hidden" id="group-id" />
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[0.62rem] font-semibold tracking-widest uppercase text-stone-400">Name</label>
+        <input id="group-name" type="text" placeholder="e.g. Dairy"
+          class="w-full border border-sage-200 rounded-xl px-3.5 py-3 text-sm outline-none focus:border-stone-800 transition-colors placeholder:text-stone-300" />
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <label class="text-[0.62rem] font-semibold tracking-widest uppercase text-stone-400">Color</label>
+        <div class="flex items-center gap-3">
+          <input id="group-color" type="color" value="#868e96"
+            class="w-14 h-11 rounded-xl border border-sage-200 p-0.5 cursor-pointer" />
+          <span class="text-xs text-stone-400">Pick a colour for this group</span>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-1 border-t border-sage-100">
+        <button id="btn-group-cancel" class="text-[0.68rem] font-bold tracking-wider uppercase text-stone-500 px-4 py-2.5 rounded-full hover:bg-stone-100 transition-colors">Cancel</button>
+        <button id="btn-group-save"   class="text-[0.68rem] font-bold tracking-wider uppercase bg-stone-900 text-white px-5 py-2.5 rounded-full hover:bg-stone-700 transition-colors">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>window.INITIAL_TAB = "{{ initial_tab | default('calendar') }}";</script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
