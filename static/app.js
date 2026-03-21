@@ -131,13 +131,13 @@ function buildWeekCard(week) {
     const dot = span("inline-block w-1.5 h-1.5 rounded-full flex-shrink-0");
     dot.style.background = group.color;
     const name = span("text-[0.58rem] font-bold tracking-[0.14em] uppercase");
-    name.style.color = group.color;
+    name.style.color = readableOnLight(group.color);
     name.textContent = group.name;
 
     // hover-reveal "+ add" pill
     const addPill = button(`ml-auto text-[0.58rem] font-semibold px-2 py-0.5 rounded-full border opacity-0 transition-opacity cursor-pointer reveal-actions`);
     addPill.textContent = "+ add";
-    addPill.style.color       = group.color;
+    addPill.style.color       = readableOnLight(group.color);
     addPill.style.borderColor = group.color + "50";
     addPill.style.background  = group.color + "12";
     addPill.addEventListener("click", () => openEntryModal(week.id, group.id));
@@ -166,7 +166,7 @@ function buildEntryRow(weekId, group, entry) {
   chk.type      = "checkbox";
   chk.className = "food-check";
   chk.checked   = entry.introduced;
-  chk.style.setProperty("--chk", group.color);
+  chk.style.setProperty("--chk", readableOnLight(group.color));
   chk.addEventListener("change", async () => {
     const date    = chk.checked ? isoToday() : null;
     const updated = await api("PUT", `/api/weeks/${weekId}/entries/${entry.id}`, {
@@ -207,7 +207,7 @@ function buildEntryRow(weekId, group, entry) {
 function buildDateChip(weekId, group, entry) {
   const chip = span("date-chip text-[0.6rem] font-semibold px-2 py-0.5 rounded-full cursor-pointer transition-opacity hover:opacity-70 select-none");
   chip.style.background = group.color + "18";
-  chip.style.color      = group.color;
+  chip.style.color      = readableOnLight(group.color);
   chip.textContent      = "📅 " + formatDate(entry.introduced_date);
   chip.title            = "Click to edit date";
 
@@ -303,7 +303,7 @@ function buildGroupCard(group) {
   const meta = div("flex items-center gap-2 flex-wrap");
   const countPill = span("text-[0.6rem] font-semibold px-2 py-0.5 rounded-full");
   countPill.style.background = group.color + "15";
-  countPill.style.color      = group.color;
+  countPill.style.color      = readableOnLight(group.color);
   countPill.textContent      = `${foods.length} food${foods.length !== 1 ? "s" : ""}`;
 
   const introPill = span("text-[0.6rem] font-semibold px-2 py-0.5 rounded-full bg-sage-100 text-stone-500");
@@ -359,7 +359,7 @@ function buildGroupCard(group) {
   const addFoodBtn = button("text-[0.65rem] font-bold tracking-wider uppercase px-3 py-2 rounded-xl transition-colors cursor-pointer whitespace-nowrap");
   addFoodBtn.textContent = "Add";
   addFoodBtn.style.background = group.color + "18";
-  addFoodBtn.style.color      = group.color;
+  addFoodBtn.style.color      = readableOnLight(group.color);
 
   async function submitNewFood() {
     const name = inp.value.trim();
@@ -448,7 +448,7 @@ function renderFoodList() {
     const gdot = span("inline-block w-2 h-2 rounded-full flex-shrink-0");
     gdot.style.background = group.color;
     const gname = span("text-[0.62rem] font-bold tracking-[0.16em] uppercase");
-    gname.style.color = group.color;
+    gname.style.color = readableOnLight(group.color);
     gname.textContent = group.name;
     const gsep  = div("flex-1 h-px bg-sage-200");
     const gcount = span("text-[0.6rem] font-semibold text-stone-400 tracking-wide");
@@ -478,7 +478,7 @@ function renderFoodList() {
       if (entry.introduced) {
         badge = span("text-[0.6rem] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap");
         badge.style.background = group.color + "18";
-        badge.style.color      = group.color;
+        badge.style.color      = readableOnLight(group.color);
         badge.textContent      = "✓ " + formatDate(entry.introduced_date);
       } else {
         badge = span("text-[0.6rem] font-semibold px-2 py-0.5 rounded-full bg-sage-100 text-stone-400 whitespace-nowrap");
@@ -677,6 +677,27 @@ async function deleteEntry(weekId, entryId) {
 function div(cls)    { const n = document.createElement("div");    n.className = cls; return n; }
 function span(cls)   { const n = document.createElement("span");   n.className = cls; return n; }
 function button(cls) { const n = document.createElement("button"); n.className = cls; return n; }
+
+function hexLuminance(hex) {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const lin = c => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+// Returns a version of hex readable as text/fill on a white or light background.
+// Colours with luminance > 0.35 (too light) are darkened by 55%.
+function readableOnLight(hex) {
+  if (!hex || hex.length < 7) return hex;
+  if (hexLuminance(hex) > 0.35) {
+    const r = Math.round(parseInt(hex.slice(1, 3), 16) * 0.45);
+    const g = Math.round(parseInt(hex.slice(3, 5), 16) * 0.45);
+    const b = Math.round(parseInt(hex.slice(5, 7), 16) * 0.45);
+    return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+  }
+  return hex;
+}
 
 function ghostBtn(icon, title, onClick) {
   const b = button("w-7 h-7 flex items-center justify-center text-stone-400 hover:text-stone-700 hover:bg-sage-100 rounded-lg transition-colors text-xs cursor-pointer");
