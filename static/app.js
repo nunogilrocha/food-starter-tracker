@@ -191,7 +191,7 @@ function buildEntryRow(weekId, group, entry) {
     if (metaRow) { metaRow.remove(); metaRow = null; }
     if (!entry.introduced) return;
     metaRow = div("flex items-center gap-2 flex-wrap");
-    metaRow.appendChild(buildDateChip(weekId, group, entry));
+    metaRow.appendChild(buildDateChip(weekId, group, entry, rc));
     main.appendChild(metaRow);
   }
   refreshMeta();
@@ -206,7 +206,7 @@ function buildEntryRow(weekId, group, entry) {
   return row;
 }
 
-function buildDateChip(weekId, group, entry) {
+function buildDateChip(weekId, group, entry, rc) {
   const chip = span("date-chip text-[0.6rem] font-semibold px-2 py-0.5 rounded-full cursor-pointer transition-opacity hover:opacity-70 select-none");
   chip.style.background = rc + "25";
   chip.style.color      = rc;
