@@ -405,16 +405,17 @@ function renderFoodList() {
 
   // summary bar
   const allEntries   = weeks.flatMap(w => w.entries);
-  const totalFoods   = allEntries.length;
+  const totalFoods   = foodGroups.reduce((sum, g) => sum + (g.foods?.length || 0), 0);
   const totalDone    = allEntries.filter(e => e.introduced).length;
+  const totalPlanned = allEntries.filter(e => !e.introduced).length;
   const pct          = totalFoods ? Math.round((totalDone / totalFoods) * 100) : 0;
 
   const summary = div("flex items-center gap-4 mb-8 flex-wrap");
 
   [
-    { label: "Total Foods",  value: totalFoods },
-    { label: "Introduced",   value: totalDone  },
-    { label: "Planned",      value: totalFoods - totalDone },
+    { label: "Total Foods",  value: totalFoods   },
+    { label: "Introduced",   value: totalDone    },
+    { label: "Planned",      value: totalPlanned },
   ].forEach(({ label, value }) => {
     const stat = div("flex flex-col gap-0.5");
     const v = span("text-2xl font-bold text-stone-800 leading-none");
