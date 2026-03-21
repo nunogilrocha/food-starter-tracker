@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#4a7c52"/>
+  <!-- stem -->
+  <line x1="256" y1="360" x2="256" y2="178" stroke="white" stroke-width="28" stroke-linecap="round"/>
+  <!-- left leaf -->
+  <path d="M256 290C256 290 145 263 132 178C132 178 243 163 256 290Z" fill="white"/>
+  <!-- right leaf -->
+  <path d="M256 233C256 233 367 207 380 122C380 122 269 122 256 233Z" fill="rgba(255,255,255,0.78)"/>
+  <!-- bowl line -->
+  <line x1="152" y1="360" x2="360" y2="360" stroke="white" stroke-width="28" stroke-linecap="round"/>
+  <!-- bowl arc -->
+  <path d="M168 360C168 360 183 448 256 448C329 448 344 360 344 360" stroke="white" stroke-width="28" fill="none" stroke-linecap="round"/>
+</svg>
