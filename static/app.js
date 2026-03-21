@@ -127,19 +127,20 @@ function buildWeekCard(week) {
     const entries = week.entries.filter(e => e.group_id === group.id);
 
     // group label
+    const rc = readableOnLight(group.color);
     const glabel = div(`flex items-center gap-2 px-2 mb-1 ${gi > 0 ? "mt-3" : "mt-1"}`);
     const dot = span("inline-block w-1.5 h-1.5 rounded-full flex-shrink-0");
-    dot.style.background = group.color;
+    dot.style.background = rc;
     const name = span("text-[0.58rem] font-bold tracking-[0.14em] uppercase");
-    name.style.color = readableOnLight(group.color);
+    name.style.color = rc;
     name.textContent = group.name;
 
     // hover-reveal "+ add" pill
     const addPill = button(`ml-auto text-[0.58rem] font-semibold px-2 py-0.5 rounded-full border opacity-0 transition-opacity cursor-pointer reveal-actions`);
     addPill.textContent = "+ add";
-    addPill.style.color       = readableOnLight(group.color);
-    addPill.style.borderColor = group.color + "50";
-    addPill.style.background  = group.color + "12";
+    addPill.style.color       = rc;
+    addPill.style.borderColor = rc + "80";
+    addPill.style.background  = rc + "18";
     addPill.addEventListener("click", () => openEntryModal(week.id, group.id));
     glabel.addEventListener("mouseenter", () => addPill.style.opacity = "1");
     glabel.addEventListener("mouseleave", () => addPill.style.opacity = "0");
@@ -166,7 +167,8 @@ function buildEntryRow(weekId, group, entry) {
   chk.type      = "checkbox";
   chk.className = "food-check";
   chk.checked   = entry.introduced;
-  chk.style.setProperty("--chk", readableOnLight(group.color));
+  const rc = readableOnLight(group.color);
+  chk.style.setProperty("--chk", rc);
   chk.addEventListener("change", async () => {
     const date    = chk.checked ? isoToday() : null;
     const updated = await api("PUT", `/api/weeks/${weekId}/entries/${entry.id}`, {
@@ -206,8 +208,8 @@ function buildEntryRow(weekId, group, entry) {
 
 function buildDateChip(weekId, group, entry) {
   const chip = span("date-chip text-[0.6rem] font-semibold px-2 py-0.5 rounded-full cursor-pointer transition-opacity hover:opacity-70 select-none");
-  chip.style.background = group.color + "18";
-  chip.style.color      = readableOnLight(group.color);
+  chip.style.background = rc + "25";
+  chip.style.color      = rc;
   chip.textContent      = "📅 " + formatDate(entry.introduced_date);
   chip.title            = "Click to edit date";
 
@@ -277,12 +279,13 @@ function buildGroupCard(group) {
   const foods = group.foods || [];
   const allEntries = weeks.flatMap(w => w.entries.filter(e => e.group_id === group.id));
   const introduced = allEntries.filter(e => e.introduced).length;
+  const rc = readableOnLight(group.color);
 
   const card = div("bg-white rounded-2xl border border-sage-100 shadow-sm overflow-hidden group/gcard");
 
   // colored top strip
   const strip = div("h-1 w-full");
-  strip.style.background = group.color;
+  strip.style.background = rc;
 
   const cardBody = div("px-5 py-4 flex flex-col gap-4");
 
@@ -290,10 +293,10 @@ function buildGroupCard(group) {
   const topRow = div("flex items-start gap-3");
 
   const swatch = div("w-9 h-9 rounded-xl flex-shrink-0 mt-0.5 flex items-center justify-center");
-  swatch.style.background = group.color + "20";
-  swatch.style.border     = `2px solid ${group.color}40`;
+  swatch.style.background = rc + "25";
+  swatch.style.border     = `2px solid ${rc}60`;
   const swatchDot = div("w-3 h-3 rounded-full");
-  swatchDot.style.background = group.color;
+  swatchDot.style.background = rc;
   swatch.appendChild(swatchDot);
 
   const nameBlock = div("flex flex-col gap-0.5 flex-1 min-w-0");
@@ -302,8 +305,8 @@ function buildGroupCard(group) {
 
   const meta = div("flex items-center gap-2 flex-wrap");
   const countPill = span("text-[0.6rem] font-semibold px-2 py-0.5 rounded-full");
-  countPill.style.background = group.color + "15";
-  countPill.style.color      = readableOnLight(group.color);
+  countPill.style.background = rc + "20";
+  countPill.style.color      = rc;
   countPill.textContent      = `${foods.length} food${foods.length !== 1 ? "s" : ""}`;
 
   const introPill = span("text-[0.6rem] font-semibold px-2 py-0.5 rounded-full bg-sage-100 text-stone-500");
@@ -332,7 +335,7 @@ function buildGroupCard(group) {
     foods.forEach(food => {
       const row = div("flex items-center gap-2 px-1 py-1 rounded-lg hover:bg-sage-50 transition-colors group/frow");
       const dot = span("inline-block w-1.5 h-1.5 rounded-full flex-shrink-0");
-      dot.style.background = group.color;
+      dot.style.background = rc;
       const fname = span("text-sm text-stone-700 flex-1");
       fname.textContent = food.name;
 
@@ -358,8 +361,8 @@ function buildGroupCard(group) {
 
   const addFoodBtn = button("text-[0.65rem] font-bold tracking-wider uppercase px-3 py-2 rounded-xl transition-colors cursor-pointer whitespace-nowrap");
   addFoodBtn.textContent = "Add";
-  addFoodBtn.style.background = group.color + "18";
-  addFoodBtn.style.color      = readableOnLight(group.color);
+  addFoodBtn.style.background = rc + "20";
+  addFoodBtn.style.color      = rc;
 
   async function submitNewFood() {
     const name = inp.value.trim();
@@ -445,10 +448,11 @@ function renderFoodList() {
 
     // group header
     const ghdr = div("flex items-center gap-2.5 mb-1");
+    const rc = readableOnLight(group.color);
     const gdot = span("inline-block w-2 h-2 rounded-full flex-shrink-0");
-    gdot.style.background = group.color;
+    gdot.style.background = rc;
     const gname = span("text-[0.62rem] font-bold tracking-[0.16em] uppercase");
-    gname.style.color = readableOnLight(group.color);
+    gname.style.color = rc;
     gname.textContent = group.name;
     const gsep  = div("flex-1 h-px bg-sage-200");
     const gcount = span("text-[0.6rem] font-semibold text-stone-400 tracking-wide");
@@ -463,7 +467,7 @@ function renderFoodList() {
 
       // status dot
       const sdot = span("inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 mt-0.5");
-      sdot.style.background = entry.introduced ? group.color : "#d4ccc8";
+      sdot.style.background = entry.introduced ? rc : "#d4ccc8";
 
       // food name
       const fname = span(`text-sm font-medium ${entry.introduced ? "text-stone-400 line-through" : "text-stone-700"} flex-1 truncate`);
@@ -477,8 +481,8 @@ function renderFoodList() {
       let badge;
       if (entry.introduced) {
         badge = span("text-[0.6rem] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap");
-        badge.style.background = group.color + "18";
-        badge.style.color      = readableOnLight(group.color);
+        badge.style.background = rc + "25";
+        badge.style.color      = rc;
         badge.textContent      = "✓ " + formatDate(entry.introduced_date);
       } else {
         badge = span("text-[0.6rem] font-semibold px-2 py-0.5 rounded-full bg-sage-100 text-stone-400 whitespace-nowrap");
