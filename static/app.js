@@ -392,13 +392,15 @@ function renderFoodList() {
   const container = document.getElementById("foodlist-content");
   container.innerHTML = "";
 
-  // build index: group → [{entry, weekLabel}]
+  // build index: group → all catalogue foods with their entry/week if scheduled
   const byGroup = foodGroups.map(group => {
-    const foods = [];
-    weeks.forEach(week => {
-      week.entries
-        .filter(e => e.group_id === group.id)
-        .forEach(entry => foods.push({ entry, week }));
+    const foods = (group.foods || []).map(food => {
+      let entry = null, week = null;
+      for (const w of weeks) {
+        const e = w.entries.find(e => e.food === food.name && e.group_id === group.id);
+        if (e) { entry = e; week = w; break; }
+      }
+      return { food, entry, week };
     });
     return { group, foods };
   }).filter(g => g.foods.length > 0);
@@ -457,37 +459,42 @@ function renderFoodList() {
     gname.textContent = group.name;
     const gsep  = div("flex-1 h-px bg-sage-200");
     const gcount = span("text-[0.6rem] font-semibold text-stone-400 tracking-wide");
-    const gdone = foods.filter(f => f.entry.introduced).length;
+    const gdone = foods.filter(f => f.entry?.introduced).length;
     gcount.textContent = `${gdone}/${foods.length}`;
     ghdr.append(gdot, gname, gsep, gcount);
 
     // food rows
     const rows = div("flex flex-col");
-    foods.forEach(({ entry, week }) => {
+    foods.forEach(({ food, entry, week }) => {
+      const introduced = entry?.introduced || false;
       const row = div("flex items-center gap-4 py-2.5 px-3 rounded-xl hover:bg-white transition-colors duration-150");
 
       // status dot
       const sdot = span("inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 mt-0.5");
-      sdot.style.background = entry.introduced ? rc : "#d4ccc8";
+      sdot.style.background = introduced ? rc : (entry ? "#f0a030" : "#d4ccc8");
 
       // food name
-      const fname = span(`text-sm font-medium ${entry.introduced ? "text-stone-400 line-through" : "text-stone-700"} flex-1 truncate`);
-      fname.textContent = entry.food;
+      const fname = span(`text-sm font-medium ${introduced ? "text-stone-400 line-through" : "text-stone-700"} flex-1 truncate`);
+      fname.textContent = food.name;
 
-      // week pill
+      // week pill (only if scheduled)
       const wpill = span("text-[0.6rem] font-semibold tracking-wide text-stone-400 bg-sage-100 px-2 py-0.5 rounded-full whitespace-nowrap");
-      wpill.textContent = week.label;
+      wpill.textContent = week ? week.label : "";
+      if (!week) wpill.style.display = "none";
 
       // status badge
       let badge;
-      if (entry.introduced) {
+      if (introduced) {
         badge = span("text-[0.6rem] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap");
         badge.style.background = rc + "25";
         badge.style.color      = rc;
         badge.textContent      = "✓ " + formatDate(entry.introduced_date);
+      } else if (entry) {
+        badge = span("text-[0.6rem] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 whitespace-nowrap");
+        badge.textContent = "Planned";
       } else {
         badge = span("text-[0.6rem] font-semibold px-2 py-0.5 rounded-full bg-sage-100 text-stone-400 whitespace-nowrap");
-        badge.textContent = "Planned";
+        badge.textContent = "Not scheduled";
       }
 
       row.append(sdot, fname, wpill, badge);
