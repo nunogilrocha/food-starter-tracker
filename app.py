@@ -1,6 +1,8 @@
 import sqlite3
 import os
+import sqlite_utils
 from flask import Flask, jsonify, request, render_template
+from migrations import migration
 
 app = Flask(__name__)
 
@@ -15,33 +17,7 @@ def get_db():
 
 
 def init_db():
-    db = get_db()
-    db.executescript("""
-        CREATE TABLE IF NOT EXISTS food_groups (
-            id    INTEGER PRIMARY KEY AUTOINCREMENT,
-            name  TEXT    NOT NULL,
-            color TEXT    NOT NULL DEFAULT '#868e96'
-        );
-        CREATE TABLE IF NOT EXISTS group_foods (
-            id       INTEGER PRIMARY KEY AUTOINCREMENT,
-            group_id INTEGER NOT NULL REFERENCES food_groups(id) ON DELETE CASCADE,
-            name     TEXT    NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS weeks (
-            id    INTEGER PRIMARY KEY AUTOINCREMENT,
-            label TEXT    NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS entries (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            week_id         INTEGER NOT NULL REFERENCES weeks(id)       ON DELETE CASCADE,
-            food            TEXT    NOT NULL,
-            group_id        INTEGER NOT NULL REFERENCES food_groups(id) ON DELETE CASCADE,
-            introduced      INTEGER NOT NULL DEFAULT 0,
-            introduced_date TEXT,
-            notes           TEXT    NOT NULL DEFAULT ''
-        );
-    """)
-    db.close()
+    migration.apply(sqlite_utils.Database(DB_FILE))
 
 
 init_db()

@@ -15,7 +15,7 @@ git clone https://github.com/nunogilrocha/food-starter-tracker.git
 cd food-starter-tracker
 python3 -m venv .venv
 source .venv/bin/activate
-pip install flask
+pip install -r requirements.txt
 python3 app.py
 ```
 
@@ -35,7 +35,7 @@ git clone https://github.com/nunogilrocha/food-starter-tracker.git
 cd food-starter-tracker
 python3 -m venv .venv
 source .venv/bin/activate
-pip install flask
+pip install -r requirements.txt
 ```
 
 ### 2. Verify it runs
