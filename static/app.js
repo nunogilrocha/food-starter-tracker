@@ -69,7 +69,31 @@ function switchTab(name) {
 function renderCalendar() {
   const container = document.getElementById("panel-calendar");
   container.innerHTML = "";
-  weeks.forEach(week => container.appendChild(buildWeekCard(week)));
+
+  if (weeks.length === 0) {
+    const empty = div("flex flex-col items-center justify-center gap-4 py-20 w-full");
+    empty.innerHTML = `
+      <svg width="72" height="72" viewBox="0 0 72 72" fill="none" style="opacity:0.25">
+        <rect x="6" y="14" width="60" height="52" rx="8" stroke="#4a7c52" stroke-width="3" fill="none"/>
+        <line x1="6" y1="30" x2="66" y2="30" stroke="#4a7c52" stroke-width="3"/>
+        <line x1="22" y1="6" x2="22" y2="22" stroke="#4a7c52" stroke-width="3" stroke-linecap="round"/>
+        <line x1="50" y1="6" x2="50" y2="22" stroke="#4a7c52" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="24" cy="46" r="3" fill="#4a7c52"/>
+        <circle cx="36" cy="46" r="3" fill="#4a7c52"/>
+        <circle cx="48" cy="46" r="3" fill="#4a7c52"/>
+      </svg>
+      <div style="text-align:center">
+        <p class="text-sm font-semibold text-stone-500">No weeks yet</p>
+        <p class="text-xs text-stone-400 mt-1">Add your first week to start tracking foods</p>
+      </div>`;
+    container.appendChild(empty);
+  }
+
+  weeks.forEach((week, i) => {
+    const card = buildWeekCard(week);
+    card.style.animationDelay = (i * 0.06) + "s";
+    container.appendChild(card);
+  });
 
   // "Add week" ghost card at the end
   const addCard = div("flex items-center justify-center min-w-[200px] max-w-[220px] h-32 border-2 border-dashed border-sage-200 rounded-3xl cursor-pointer hover:border-stone-300 hover:bg-white transition-all duration-200 flex-shrink-0 group");
@@ -89,7 +113,7 @@ function buildWeekCard(week) {
   const done  = week.entries.filter(e => e.introduced).length;
   const pct   = total ? Math.round((done / total) * 100) : 0;
 
-  const card = div("bg-white rounded-3xl shadow-sm border border-sage-100 flex flex-col min-w-[288px] max-w-[312px] overflow-hidden flex-shrink-0 group/card");
+  const card = div("slide-in-card bg-white rounded-3xl shadow-sm border border-sage-100 flex flex-col min-w-[288px] max-w-[312px] overflow-hidden flex-shrink-0 group/card");
   card.dataset.weekId = week.id;
 
   // header
@@ -147,7 +171,11 @@ function buildWeekCard(week) {
 
     glabel.append(dot, name, addPill);
     body.appendChild(glabel);
-    entries.forEach(entry => body.appendChild(buildEntryRow(week.id, group, entry)));
+    entries.forEach((entry, ei) => {
+      const row = buildEntryRow(week.id, group, entry);
+      row.style.animationDelay = (ei * 0.04) + "s";
+      body.appendChild(row);
+    });
   });
 
   // add food button
@@ -161,7 +189,7 @@ function buildWeekCard(week) {
 }
 
 function buildEntryRow(weekId, group, entry) {
-  const row = div("flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-sage-50 transition-colors duration-150 group/row");
+  const row = div("row-in flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-sage-50 transition-colors duration-150 group/row");
 
   const chk = document.createElement("input");
   chk.type      = "checkbox";
@@ -170,6 +198,10 @@ function buildEntryRow(weekId, group, entry) {
   const rc = readableOnLight(group.color);
   chk.style.setProperty("--chk", rc);
   chk.addEventListener("change", async () => {
+    if (chk.checked) {
+      confettiBurst(chk);
+      if (navigator.vibrate) navigator.vibrate(10);
+    }
     const date    = chk.checked ? isoToday() : null;
     const updated = await api("PUT", `/api/weeks/${weekId}/entries/${entry.id}`, {
       introduced: chk.checked, introduced_date: date,
@@ -259,19 +291,29 @@ function renderGroups() {
   container.appendChild(pageHdr);
 
   if (!foodGroups.length) {
-    const empty = div("text-center py-20 flex flex-col items-center gap-3");
-    const emptyIcon = div("text-4xl opacity-20");
-    emptyIcon.textContent = "🥦";
-    const emptyMsg = span("text-sm text-stone-400");
-    emptyMsg.textContent = "No food groups yet. Create one to get started.";
-    empty.append(emptyIcon, emptyMsg);
+    const empty = div("text-center py-20 flex flex-col items-center gap-4");
+    empty.innerHTML = `
+      <svg width="72" height="72" viewBox="0 0 72 72" fill="none" style="opacity:0.25">
+        <circle cx="22" cy="22" r="12" stroke="#4a7c52" stroke-width="3" fill="none"/>
+        <circle cx="50" cy="22" r="12" stroke="#4a7c52" stroke-width="3" fill="none"/>
+        <path d="M4 58c0-10 8-18 18-18s18 8 18 18" stroke="#4a7c52" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <path d="M50 40c8 1.5 14 8 14 18" stroke="#4a7c52" stroke-width="3" stroke-linecap="round" fill="none"/>
+      </svg>
+      <div>
+        <p class="text-sm font-semibold text-stone-500">No food groups yet</p>
+        <p class="text-xs text-stone-400 mt-1">Create a group to start organising foods</p>
+      </div>`;
     container.appendChild(empty);
     return;
   }
 
   // group cards
   const cards = div("flex flex-col gap-3");
-  foodGroups.forEach(group => cards.appendChild(buildGroupCard(group)));
+  foodGroups.forEach((group, i) => {
+    const card = buildGroupCard(group);
+    card.style.animationDelay = (i * 0.06) + "s";
+    cards.appendChild(card);
+  });
   container.appendChild(cards);
 }
 
@@ -281,7 +323,7 @@ function buildGroupCard(group) {
   const introduced = allEntries.filter(e => e.introduced).length;
   const rc = readableOnLight(group.color);
 
-  const card = div("bg-white rounded-2xl border border-sage-100 shadow-sm overflow-hidden group/gcard");
+  const card = div("slide-in-card bg-white rounded-2xl border border-sage-100 shadow-sm overflow-hidden group/gcard");
 
   // colored top strip
   const strip = div("h-1 w-full");
@@ -332,8 +374,9 @@ function buildGroupCard(group) {
     empty.textContent = "No foods yet — add one below";
     foodSection.appendChild(empty);
   } else {
-    foods.forEach(food => {
-      const row = div("flex items-center gap-2 px-1 py-1 rounded-lg hover:bg-sage-50 transition-colors group/frow");
+    foods.forEach((food, fi) => {
+      const row = div("row-in flex items-center gap-2 px-1 py-1 rounded-lg hover:bg-sage-50 transition-colors group/frow");
+      row.style.animationDelay = (fi * 0.04) + "s";
       const dot = span("inline-block w-1.5 h-1.5 rounded-full flex-shrink-0");
       dot.style.background = rc;
       const fname = span("text-sm text-stone-700 flex-1");
@@ -724,6 +767,38 @@ function formatDate(iso) {
   if (!iso) return "set date";
   const [, m, d] = iso.split("-");
   return `${parseInt(d)} ${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][parseInt(m)-1]}`;
+}
+
+// ── Confetti ───────────────────────────────────────────────────────────────
+function confettiBurst(el) {
+  const rect = el.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top  + rect.height / 2;
+  const colors = ["#4a7c52","#a3c28f","#f0a030","#e07060","#7090d0","#d080a0","#c3d9b4","#fbbf24"];
+  for (let i = 0; i < 14; i++) {
+    const p = document.createElement("div");
+    const angle = (i / 14) * Math.PI * 2 + (Math.random() - 0.5) * 0.8;
+    const dist  = 28 + Math.random() * 38;
+    const size  = 4 + Math.random() * 4;
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    Object.assign(p.style, {
+      position:      "fixed",
+      left:          cx + "px",
+      top:           cy + "px",
+      width:         size + "px",
+      height:        size + "px",
+      background:    color,
+      borderRadius:  Math.random() > 0.4 ? "50%" : "2px",
+      pointerEvents: "none",
+      zIndex:        "9999",
+      "--tx":        (Math.cos(angle) * dist) + "px",
+      "--ty":        (Math.sin(angle) * dist - 12) + "px",
+      "--r":         ((Math.random() - 0.5) * 360) + "deg",
+      animation:     "confettiFly 0.55s ease-out forwards",
+    });
+    document.body.appendChild(p);
+    p.addEventListener("animationend", () => p.remove());
+  }
 }
 
 // ── Start ──────────────────────────────────────────────────────────────────

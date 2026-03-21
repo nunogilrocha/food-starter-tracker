@@ -83,6 +83,26 @@
 
     /* ── Safe area on iOS notch/home-bar ────────────────────────── */
     body { padding-bottom: env(safe-area-inset-bottom); }
+
+    /* ── Slide-in for cards ──────────────────────────────────────── */
+    @keyframes slideInCard {
+      from { opacity: 0; transform: translateY(14px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0)    scale(1); }
+    }
+    .slide-in-card { animation: slideInCard 0.26s ease both; }
+
+    /* ── Row-in for list items ───────────────────────────────────── */
+    @keyframes rowIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .row-in { animation: rowIn 0.18s ease both; }
+
+    /* ── Confetti particle ───────────────────────────────────────── */
+    @keyframes confettiFly {
+      0%   { opacity: 1; transform: translate(-50%,-50%) translate(0,0)              rotate(0deg)    scale(1); }
+      100% { opacity: 0; transform: translate(-50%,-50%) translate(var(--tx),var(--ty)) rotate(var(--r)) scale(0.4); }
+    }
   </style>
 </head>
 <body class="bg-sage-bg min-h-screen font-sans antialiased text-stone-800">
